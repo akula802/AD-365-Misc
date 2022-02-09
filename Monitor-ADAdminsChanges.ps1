@@ -131,12 +131,6 @@ Function GetADGroupMembers() {
                 } # End Foreach $group loop
 
 
-                # After the loop, trim the leading white space from the string variable
-                #$currentMembers = $currentMembers.Trim()
-                #Write-Host $currentMembers
-
-
-
             # Yes, this temp file stuff is stupid, but Labtech
             # Create the temp file
             $tempCurrentMembersFile = "C:\ProgramData\Scripts\tempCurrentMembers.txt"
@@ -259,7 +253,8 @@ Function CompareGroupMembers(){
                 $changeResultMessage = (Get-Content $tempMessageFile) -join "`n"
                 Write-Host $changeResultMessage
                 Remove-Item $tempMessageFile -Force
-        }
+                
+        } # end Else
 
 } # End function CompareGroupMembers
 
