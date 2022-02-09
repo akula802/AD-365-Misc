@@ -42,6 +42,14 @@ $timestamp = Get-Date -Format yyyy-MM-dd_HH:mm:ss
 
 
 
+# Before starting, remove any remnant tmpMsg file if it exists (sanity check)
+if (Test-Path -Path $tempMessageFile)
+    {
+        Remove-Item $tempMessageFile -Force
+    }
+
+
+
 ########### DEFINE THE FUNCTIONS #########################################################################
 
 # Define the Send-Alert function
@@ -260,14 +268,6 @@ Function CompareGroupMembers(){
 
 ########### CALL THE FUNCTIONS ###########################################################################
 
-
-# Before starting, remove any remnant tmpMsg file if it exists (sanity check)
-if (Test-Path -Path $tempMessageFile)
-    {
-        Remove-Item $tempMessageFile -Force
-    }
-
-
-# Ok, now call the functions :-)
+# Let the show begin :-)
 GetADGroupMembers
 CompareGroupMembers
