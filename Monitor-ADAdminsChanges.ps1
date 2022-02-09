@@ -1,6 +1,6 @@
 # Updated 2/9/2022
 # Script to check for changes in AD admin security groups
-# Intended to run often as a scheduled task
+# Intended to run often as a scheduled task or from an RMM
 # Writes to and reads from a text file - this file could be encrypted for added security later
 # It also creates and deletes some temporary files - necessary to ensure UTF8 encoding on all string variables when using the script in a crappy RMM
 # https://github.com/akula802/AD-365-Misc/edit/main/Monitor-ADAdminsChanges.ps1
