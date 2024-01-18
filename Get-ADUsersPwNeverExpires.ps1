@@ -237,6 +237,10 @@ $total_users_affected = $users.Count
 if ($total_users_affected -gt 0) {
     $users | Export-Csv -Path "$log_directory\users-pw-never-expires__$finish_success_timestamp_for_filename.csv" -Force
 }
+else {
+    # No users found, set counter to 0
+    $total_users_affected = 0
+}
 
 # Update the log
 $finish_success_msg = "There were $total_users_affected users found with never-expiring passwords.`r`nScript finished successfully at $finish_success_timestamp_for_log`r`n=================================="
