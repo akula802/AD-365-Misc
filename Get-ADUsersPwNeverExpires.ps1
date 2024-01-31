@@ -1,5 +1,7 @@
 # Script to find user accounts with 'password never expires' set to True, and sets it to False
 # Intended to prevent accounts from having eternal passwords
+# Will run on a schedule from HQ-Scripts
+
 
 
 ###############################
@@ -10,7 +12,7 @@
 $begin_timestamp = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
 
 # Check and/or create the log directory
-cd "C:\Scripts\UserPwCheck"
+cd "E:\Scripts\UserPwCheck"
 $log_directory = "$PWD\UserPwCheckLog"
 if (!(Test-Path -Path $log_directory)) {
     New-Item -Path $PWD -Name "UserPwCheckLog" -ItemType Directory | Out-Null
@@ -133,14 +135,20 @@ Try {
         # Clear $Error
         $Error.Clear()
 
-        # UPDATE THIS FOR YOUR USER SEARCH NEEDS
+        # Get the users
         $users = Get-ADUser -Filter {Name -notlike '*mailbox*'} `
-            -Properties Enabled, DistinguishedName, SID, SamAccountName, Name, GivenName, Surname, EmailAddress, PasswordNeverExpires, LastLogonDate `
-            | Select-Object PasswordNeverExpires, Enabled, DistinguishedName, SamAccountName, EmailAddress, SID `
+            -Properties Enabled, DistinguishedName, SID, SamAccountName, Name, GivenName, Surname, EmailAddress, PasswordNeverExpires, LastLogonDate, AdminCount `
+            | Select-Object PasswordNeverExpires, Enabled, DistinguishedName, SamAccountName, EmailAddress, SID, AdminCount `
             | Where-Object {$_.DistinguishedName -notlike "*OU=*Service Account*"} `
+            | Where-Object {$_.DistinguishedName -notlike "*OU=MIC*"} `
             | Where-Object {$_.DistinguishedName -notlike "*OU=Disabled*"} `
             | Where-Object {$_.Enabled -eq $true}  `
             | Where-Object {$_.PasswordNeverExpires -eq $true}
+
+        # Get a count of the users
+        $total_users_affected = 0
+        $total_users_requiring_manual_change = 0
+        ForEach ($user in $users) { $total_users_affected ++ }
     }
 
 catch {
@@ -177,11 +185,22 @@ ForEach ($user in $users) {
         ### BEGIN CRITICAL ACTION ###
         # Flip the 'PasswordNeverExpires' property to FALSE
         Try {
-            Set-ADUser -Identity $user.SID -PasswordNeverExpires $false
-            $user_updated_msg = $user.SamAccountName + " ::: PasswordNeverExpires was changed to FALSE ::: Last Login: $last_login"
-            Write-Host $user_updated_msg
-            Update-ScriptLogFile -LogFilePath $log_file -LogMessage $user_updated_msg
-        }
+
+            if ($user.AdminCount -eq 1) {
+                $user_is_admin_log_msg = "WARNING ::: " + $user.SamAccountName + " has AdminCount=1. Delegation is not allowed. Change this manually!"
+                Write-Host $user_is_admin_log_msg
+                Update-ScriptLogFile -LogFilePath $log_file -LogMessage $user_is_admin_log_msg
+                $total_users_requiring_manual_change ++
+            }
+
+            else {
+                Set-ADUser -Identity $user.SID -PasswordNeverExpires $false
+                $user_updated_msg = $user.SamAccountName + " ::: PasswordNeverExpires was changed to FALSE ::: Last Login: $last_login"
+                Write-Host $user_updated_msg
+                Update-ScriptLogFile -LogFilePath $log_file -LogMessage $user_updated_msg
+            }
+
+        } # End Try
 
         Catch {
             # If the script fails to change the property, log the details and exit
@@ -233,17 +252,17 @@ $finish_success_timestamp_for_filename = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $finish_success_timestamp_for_log = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
 
 # Export the results, if there are any
-$total_users_affected = $users.Count
 if ($total_users_affected -gt 0) {
     $users | Export-Csv -Path "$log_directory\users-pw-never-expires__$finish_success_timestamp_for_filename.csv" -Force
 }
+
 else {
-    # No users found, set counter to 0
+    # No accounts were found
     $total_users_affected = 0
 }
 
 # Update the log
-$finish_success_msg = "There were $total_users_affected users found with never-expiring passwords.`r`nScript finished successfully at $finish_success_timestamp_for_log`r`n=================================="
+$finish_success_msg = "There were $total_users_affected users found with never-expiring passwords, and $total_users_requiring_manual_change users that require manual intervention.`r`nScript finished successfully at $finish_success_timestamp_for_log`r`n=================================="
 Write-Host $finish_success_msg
 Update-ScriptLogFile -LogFilePath $log_file -LogMessage $finish_success_msg
 
