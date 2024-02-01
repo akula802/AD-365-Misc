@@ -1,6 +1,5 @@
 # Script to find user accounts with 'password never expires' set to True, and sets it to False
 # Intended to prevent accounts from having eternal passwords
-# Will run on a schedule from HQ-Scripts
 
 
 
